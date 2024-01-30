@@ -22,6 +22,7 @@ func main() {
 	// Create routers using chi library
 	r := chi.NewRouter()
 	api := chi.NewRouter()
+	admin := chi.NewRouter()
 
 	// Serve files from root project
 	fsHandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot))))
@@ -30,11 +31,12 @@ func main() {
 	r.Handle("/app", fsHandler)
 	r.Handle("/app/*", fsHandler)
 	api.Get("/healthz", handlerReadiness)
-	api.Get("/metrics", apiCfg.handlerMetrics)
 	api.HandleFunc("/reset", apiCfg.handlerReset)
+	admin.Get("/metrics", apiCfg.handlerMetrics)
 
-	// Mount the api router on the main router
+	// Mount different routers
 	r.Mount("/api", api)
+	r.Mount("/admin", admin)
 
 	corsMux := middlewareCors(r)
 
@@ -48,10 +50,11 @@ func main() {
 }
 
 func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Add("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("Hits: %d", cfg.fileserverHits)))
+	fmt.Fprintf(w, "<html>\n<body>\n<h1>Welcome, Chirpy Admin</h1>\n<p>Chirpy has been visited %d times!</p>\n</body>\n</html>", cfg.fileserverHits)
 }
+
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
