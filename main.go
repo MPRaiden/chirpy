@@ -32,6 +32,7 @@ func main() {
 	r.Handle("/app/*", fsHandler)
 	api.Get("/healthz", handlerReadiness)
 	api.HandleFunc("/reset", apiCfg.handlerReset)
+	api.Post("/validate_chirp", validateChirp)
 	admin.Get("/metrics", apiCfg.handlerMetrics)
 
 	// Mount different routers
