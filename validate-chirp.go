@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"encoding/json"
 	"log"
+	"strings"
 )
 
 func validateChirp(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +34,16 @@ func validateChirp(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	response := map[string]bool{"valid":true}
+
+	
+	chirp := strings.ToLower(params.body)
+	badWords := []string{"kerfuffle","sharbert","fornax"}
+
+	for _,bw := range badWords {
+		chirp = strings.Replace(chirp, bw, "****", -1)
+	}
+
+	response := map[string]string{"cleaned_body": chirp}
 	dat, err := json.Marshal(response)
 	if err != nil {
 		log.Printf("Error marshalling JSON: %s", err)
