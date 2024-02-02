@@ -5,13 +5,22 @@ import (
 	"log"
 	"net/http"
 	"github.com/go-chi/chi/v5"
+	"github.com/MPRaiden/chirpy/database"
+	"encoding/json"
 )
 
 type apiConfig struct {
 	fileserverHits int
 }
 
+var db *database.DB
+
 func main() {
+	var err error
+	db, err = database.NewDB("database.json")
+	if err != nil {
+		log.Fatalf("Failed to connect to the database: %s", err)
+	}
 	const filepathRoot = "."
 	const port = "8080"
 
@@ -31,6 +40,8 @@ func main() {
 	r.Handle("/app", fsHandler)
 	r.Handle("/app/*", fsHandler)
 	api.Get("/healthz", handlerReadiness)
+	api.Post("/chirps", postChirp)
+	api.Get("/chirps", getChirps)
 	api.HandleFunc("/reset", apiCfg.handlerReset)
 	admin.Get("/metrics", apiCfg.handlerMetrics)
 
@@ -61,4 +72,50 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 		cfg.fileserverHits++
 		next.ServeHTTP(w, r)
 	})
+}
+
+func validateChirp(body string) (string, error) {
+	if len(body) > 140 {
+		return "", fmt.Errorf("Chirp is too long")
+	}
+
+	cleanedChirp := cleanChirp(body)
+	return cleanedChirp, nil
+}
+
+
+func postChirp(w http.ResponseWriter, r *http.Request) {
+    var newChirp database.Chirp
+    err := json.NewDecoder(r.Body).Decode(&newChirp)
+    if err != nil {
+        log.Printf("Error decoding parameters: %s", err)
+        respondWithError(w, 500, "Unable to parse request body.")
+        return
+    }
+
+    validatedChirp, err := validateChirp(newChirp.Body)
+    if err != nil {
+        respondWithError(w, 400, err.Error())
+        return
+    }
+
+    createdChirp, err := db.CreateChirp(validatedChirp)
+    if err != nil {
+        log.Printf("Error creating chirp: %s", err)
+        respondWithError(w, 500, "Unable to create chirp.")
+        return
+    }
+
+	respondWithJSON(w, http.StatusCreated, createdChirp)
+}
+
+func getChirps(w http.ResponseWriter, r *http.Request) {
+	chirps, err := db.GetChirps()
+	if err != nil {
+		log.Printf("Error getting chirps: %s", err)
+		respondWithError(w, 500, "Unable to get chirps.")
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, chirps)
 }
