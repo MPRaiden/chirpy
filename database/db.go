@@ -4,6 +4,7 @@ import (
 	"os"
 	"encoding/json"
 	"sync"
+	"sort"
 )
 
 type DB struct {
@@ -40,7 +41,7 @@ func (db *DB) ensureDB() error {
 	_, err := os.Stat(db.path)
 	if os.IsNotExist(err) {
 		// Initialize an empty database
-		initialDB = `{"chirps":{}}`
+		initialDB := `{"chirps":{}}`
 		err := os.WriteFile("database.json", []byte(initialDB), 0666)
 		if err != nil {
 			return err
@@ -75,7 +76,7 @@ func (db *DB) writeDB(dbStructure DBStructure) error {
 
 	// Write the data to the file
 	err = os.WriteFile(db.path, data, 0666)
-	if err != nil {
+	if err != nil {
 		return err
 	}
 	
@@ -84,11 +85,59 @@ func (db *DB) writeDB(dbStructure DBStructure) error {
 
 // CreateChirp creates a new chirp and saves it to disk
 func (db *DB) CreateChirp(body string) (Chirp, error) {
-	
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	// Load existing chirps
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return Chirp{}, err
+	}
+
+	// Generate an id for the new chirp
+	newID := len(dbStructure.Chirps) + 1
+
+	// Create a new chirp
+	newChirp := Chirp{
+		ID: newID,
+		Body: body,
+	}
+
+	// Add the new chirp into the Chirps map
+	dbStructure.Chirps[newID] = newChirp
+
+	// Write the update chirps back to the file
+	err = db.writeDB(dbStructure)
+	if err != nil {
+		return Chirp{}, err
+	}
+
+	return newChirp, nil
 }
 
 // GetChirps returns all chirps in the database
 func (db *DB) GetChirps() ([]Chirp, error) {
+	db.mux.RLock()
+	defer db.mux.RUnlock()
 
+	// Load existing chirps
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert map to slice
+	chirps := make([]Chirp, 0, len(dbStructure.Chirps))
+	for _, chirp := range dbStructure.Chirps {
+		chirps = append(chirps, chirp)
+	}
+
+	// Sort chirps by ID
+	sort.Slice(chirps, func(i, j int) bool {
+		return chirps[i].ID < chirps[j].ID
+		})
+
+
+	return chirps, nil
 }
 
