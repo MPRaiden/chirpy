@@ -14,12 +14,19 @@ type DB struct {
 
 type DBStructure struct {
 	Chirps map [int]Chirp `json:"chirps"`
+	Users map[int]User `json:"users"`
 }
 
 type Chirp struct {
 	ID int `json:"id"`
 	Body string `json:"body"`
 }
+
+type User struct {
+	Id int `json:"id"`
+	Email string `json:"email"`
+}
+
 
 // NewDB creates a new database connection and creates the database file if it doesn't exist
 func NewDB(path string) (*DB, error) {
@@ -41,7 +48,7 @@ func (db *DB) ensureDB() error {
 	_, err := os.Stat(db.path)
 	if os.IsNotExist(err) {
 		// Initialize an empty database
-		initialDB := `{"chirps":{}}`
+		initialDB := `{"chirps":{}, "users":{}}`
 		err := os.WriteFile("database.json", []byte(initialDB), 0666)
 		if err != nil {
 			return err
@@ -139,5 +146,36 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 
 
 	return chirps, nil
+}
+
+func (db *DB) CreateUser(email string) (*User, error) {
+    	db.mux.Lock()	
+	defer db.mux.Unlock()
+	
+	// Load existing users
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return nil, err
+	}
+	
+	// Generate a new id for the user
+	newID := len(dbStructure.Users) + 1
+
+	// Create a new user.
+	newUser := &User{
+		Id:    newID,
+		Email: email,
+	}
+
+	// Add the new user to the Users map
+	dbStructure.Users[newID] = *newUser
+
+	// Write the updated users back to the file
+	err = db.writeDB(dbStructure)
+	if err != nil {
+		return nil, err
+	}
+
+	return newUser, nil
 }
 

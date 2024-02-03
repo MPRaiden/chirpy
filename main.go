@@ -8,6 +8,8 @@ import (
 	"github.com/MPRaiden/chirpy/database"
 	"encoding/json"
 	"strconv"
+	"os"
+	"flag"
 )
 
 type apiConfig struct {
@@ -17,6 +19,14 @@ type apiConfig struct {
 var db *database.DB
 
 func main() {
+	// Deletes database.json on server start if debug mode
+	var debug bool
+	flag.BoolVar(&debug, "debug", false, "Enable debug mode")
+	flag.Parse()
+	if debug {
+	deleteDatabase()
+	}
+
 	var err error
 	db, err = database.NewDB("database.json")
 	if err != nil {
@@ -44,6 +54,7 @@ func main() {
 	api.Post("/chirps", postChirp)
 	api.Get("/chirps", getChirps)
 	api.Get("/chirps/{chirp_id}", getChirp)
+	api.Post("/users", createUser)
 	api.HandleFunc("/reset", apiCfg.handlerReset)
 	admin.Get("/metrics", apiCfg.handlerMetrics)
 
@@ -60,6 +71,15 @@ func main() {
 
 	log.Printf("Serving files from %s on port: %s\n", filepathRoot, port)
 	log.Fatal(srv.ListenAndServe())
+}
+
+func deleteDatabase() {
+    err := os.Remove("database.json")
+    if err != nil {
+        log.Fatalf("Failed to delete the database: %s", err)
+    } else {
+        log.Println("Successfully deleted the database.")
+    }
 }
 
 func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
@@ -149,3 +169,23 @@ func getChirp(w http.ResponseWriter, r *http.Request) {
 	}
 	respondWithError(w, 404, "Not found")
 }
+
+func createUser(w http.ResponseWriter, r *http.Request) {
+    var newUser database.User
+    err := json.NewDecoder(r.Body).Decode(&newUser)
+    if err != nil {
+        log.Printf("Error decoding parameters: %s", err)
+        respondWithError(w, 500, "Unable to parse request body.")
+        return
+    }
+
+    createdUser, err := db.CreateUser(newUser.Email)
+    if err != nil {
+        log.Printf("Error creating user: %s", err)
+        respondWithError(w, 500, "Unable to create user.")
+        return
+    }
+
+    respondWithJSON(w, http.StatusCreated, createdUser)
+}
+
