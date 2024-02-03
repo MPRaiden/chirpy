@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/MPRaiden/chirpy/database"
 	"encoding/json"
+	"strconv"
 )
 
 type apiConfig struct {
@@ -42,6 +43,7 @@ func main() {
 	api.Get("/healthz", handlerReadiness)
 	api.Post("/chirps", postChirp)
 	api.Get("/chirps", getChirps)
+	api.Get("/chirps/{chirp_id}", getChirp)
 	api.HandleFunc("/reset", apiCfg.handlerReset)
 	admin.Get("/metrics", apiCfg.handlerMetrics)
 
@@ -118,4 +120,32 @@ func getChirps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, chirps)
+}
+
+func getChirp(w http.ResponseWriter, r *http.Request) {
+	// Get chirp id
+	chirpID := chi.URLParam(r, "chirp_id")
+	id, err := strconv.Atoi(chirpID)
+	if err != nil {
+		log.Printf("Error getting chirps: %s", err)
+		respondWithError(w, 500, "Unable to convert string to int.")
+		return
+	}
+
+	// Load chirps DB
+	chirps, err := db.GetChirps()
+	if err != nil {
+		log.Printf("Error getting chirps: %s", err)
+		respondWithError(w, 500, "Unable to get chirps.")
+		return
+	}
+
+	// First specific chirp
+	for _, chirp := range chirps {
+		if chirp.ID == id {
+			respondWithJSON(w, http.StatusOK, chirp)
+			return
+		}
+	}
+	respondWithError(w, 404, "Not found")
 }
