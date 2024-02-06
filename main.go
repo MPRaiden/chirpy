@@ -17,7 +17,10 @@ type apiConfig struct {
 }
 
 func main() {
-	godotenv.Load(".ENV")
+	err := godotenv.Load(".ENV")
+	if err != nil {
+		log.Fatal("Error loading .ENV file")
+	}
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
