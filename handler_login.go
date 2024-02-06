@@ -3,18 +3,24 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 	"github.com/MPRaiden/chirpy/internal/auth"
+
 )
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password string `json:"password"`
 		Email    string `json:"email"`
+		ExpiresInSeconds int `json:"expires_in_seconds"`
+
 	}
 	type response struct {
 		User
+		Token string `json:"token"`
 	}
 
+	// Parse the request body
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	err := decoder.Decode(&params)
@@ -23,15 +29,31 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get the user by their email
 	user, err := cfg.DB.GetUserByEmail(params.Email)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get user")
 		return
 	}
 
+	// Check their password
 	err = auth.CheckPasswordHash(params.Password, user.HashedPassword)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Invalid password")
+		return
+	}
+
+	// Handle expiration token
+	defaultExpiration := 60 * 60 * 24
+	if params.ExpiresInSeconds == 0 {
+		params.ExpiresInSeconds = defaultExpiration
+	} else if params.ExpiresInSeconds > defaultExpiration {
+		params.ExpiresInSeconds = defaultExpiration
+	}
+
+	jwtToken, err := auth.MakeJWT(user.ID, cfg.jwtSecret, time.Duration(params.ExpiresInSeconds)*time.Second)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not create a JWT token")
 		return
 	}
 
@@ -40,5 +62,6 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 			ID:    user.ID,
 			Email: user.Email,
 		},
+		Token: jwtToken,
 	})
 }

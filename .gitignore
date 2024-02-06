@@ -1,3 +1,4 @@
 chirpy
 .DS_Store
 database.json
+.env
