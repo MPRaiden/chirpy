@@ -17,19 +17,18 @@ type apiConfig struct {
 }
 
 func main() {
+	const filepathRoot = "."
+	const port = "8080"
+
 	err := godotenv.Load(".ENV")
 	if err != nil {
 		log.Fatal("Error loading .ENV file")
 	}
-
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		log.Fatal("JWT_SECRET environment variable is not set")
 	}
-
-	const filepathRoot = "."
-	const port = "8080"
-
+	
 	db, err := database.NewDB("database.json")
 	if err != nil {
 		log.Fatal(err)
