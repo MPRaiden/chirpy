@@ -21,6 +21,19 @@ func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusUnauthorized, "Couldn't find JWT")
 		return
 	}
+
+	// Reject request if token is refresh
+	isRefresh, err := auth.IsRefreshToken(token, cfg.jwtSecret)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Could not check token type")
+		return
+	}
+	if isRefresh {
+		respondWithError(w, http.StatusUnauthorized, "Refresh token used in place of access token")
+		return
+	}
+
+	// Validate access token
 	subject, err := auth.ValidateJWT(token, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Couldn't validate JWT")
