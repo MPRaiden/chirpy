@@ -17,6 +17,7 @@ type DB struct {
 type DBStructure struct {
 	Chirps map[int]Chirp `json:"chirps"`
 	Users  map[int]User  `json:"users"`
+	RevokedTokens map[string]string `json:"revokedTokens"`
 }
 
 func NewDB(path string) (*DB, error) {
@@ -83,4 +84,18 @@ func (db *DB) writeDB(dbStructure DBStructure) error {
 		return err
 	}
 	return nil
+}
+
+func (db *DB) IsTokenRevoked(token string) (bool, error) {
+	dbData, err := db.Load()
+
+	if err != nil {
+		return false, err
+	}
+
+	if _, ok := dbData.RevokedTokens[token]; ok {
+		return true, nil
+	}
+
+	return false, nil
 }

@@ -89,3 +89,21 @@ func IsRefreshToken(tokenString string, tokenSecret string) (bool, error) {
 
 	return false, err
 }
+
+// ExtractClaims -
+func ExtractClaims(tokenStr string, secret []byte) (jwt.MapClaims, error) {
+    token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+        return secret, nil
+    })
+
+    if err != nil {
+        return nil, err
+    }
+
+    if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+        return claims, nil
+    } else {
+        return nil, errors.New("couldn't extract claims")
+    }
+}
+
