@@ -99,3 +99,19 @@ func (db *DB) IsTokenRevoked(token string) (bool, error) {
 
 	return false, nil
 }
+
+func (db *DB) RevokeRefreshToken(token string) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	dbStructure, err := db.loadDB()
+
+	if err != nil {
+		return err
+	}
+
+	dbStructure.RevokedTokens[token] = "" // Add the token to the RevokedTokens map
+
+	return db.writeDB(dbStructure) // Write the updated DB structure back to the file
+}
+

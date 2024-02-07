@@ -43,7 +43,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create JWT token
-	jwtToken, err := auth.MakeJWT(user.ID, cfg.jwtSecret, time.Hour) 
+	jwtToken, err := auth.MakeJWT(user.ID, cfg.jwtSecret, time.Hour, "chirpy-access") 
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Could not create a JWT token")
 		return
