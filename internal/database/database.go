@@ -15,9 +15,9 @@ type DB struct {
 }
 
 type DBStructure struct {
-	Chirps map[int]Chirp `json:"chirps"`
-	Users  map[int]User  `json:"users"`
-	RevokedTokens map[string]string `json:"revokedTokens"`
+	Chirps      map[int]Chirp         `json:"chirps"`
+	Users       map[int]User          `json:"users"`
+	Revocations map[string]Revocation `json:"revocations"`
 }
 
 func NewDB(path string) (*DB, error) {
@@ -31,8 +31,9 @@ func NewDB(path string) (*DB, error) {
 
 func (db *DB) createDB() error {
 	dbStructure := DBStructure{
-		Chirps: map[int]Chirp{},
-		Users:  map[int]User{},
+		Chirps:      map[int]Chirp{},
+		Users:       map[int]User{},
+		Revocations: map[string]Revocation{},
 	}
 	return db.writeDB(dbStructure)
 }
@@ -85,33 +86,3 @@ func (db *DB) writeDB(dbStructure DBStructure) error {
 	}
 	return nil
 }
-
-func (db *DB) IsTokenRevoked(token string) (bool, error) {
-	dbData, err := db.Load()
-
-	if err != nil {
-		return false, err
-	}
-
-	if _, ok := dbData.RevokedTokens[token]; ok {
-		return true, nil
-	}
-
-	return false, nil
-}
-
-func (db *DB) RevokeRefreshToken(token string) error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	dbStructure, err := db.loadDB()
-
-	if err != nil {
-		return err
-	}
-
-	dbStructure.RevokedTokens[token] = "" // Add the token to the RevokedTokens map
-
-	return db.writeDB(dbStructure) // Write the updated DB structure back to the file
-}
-
