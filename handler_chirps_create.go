@@ -5,11 +5,14 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"github.com/MPRaiden/chirpy/internal/auth"
+	"strconv"
 )
 
 type Chirp struct {
 	ID   int    `json:"id"`
 	Body string `json:"body"`
+	AuthorID int `json:"author_id"`
 }
 
 func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request) {
@@ -17,8 +20,9 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 		Body string `json:"body"`
 	}
 
+	var params parameters
+
 	decoder := json.NewDecoder(r.Body)
-	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters")
@@ -31,7 +35,13 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	chirp, err := cfg.DB.CreateChirp(cleaned)
+	authorID, err := cfg.GetTokenUserID(r)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "User is not logged in")
+		return
+	}
+
+	chirp, err := cfg.DB.CreateChirp(cleaned, authorID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp")
 		return
@@ -40,6 +50,7 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 	respondWithJSON(w, http.StatusCreated, Chirp{
 		ID:   chirp.ID,
 		Body: chirp.Body,
+		AuthorID: chirp.AuthorID,
 	})
 }
 
@@ -68,4 +79,23 @@ func getCleanedBody(body string, badWords map[string]struct{}) string {
 	}
 	cleaned := strings.Join(words, " ")
 	return cleaned
+}
+
+func (cfg *apiConfig) GetTokenUserID (r *http.Request) (int, error) {
+	tokenStr, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		return 0, err
+	}
+
+	userIDStr, err := auth.ValidateJWT(tokenStr, cfg.jwtSecret)
+	if err != nil {
+		return 0, err
+	}
+
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		return 0, err
+	}
+
+	return userID, nil
 }
