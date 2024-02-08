@@ -1,1 +1,1 @@
-{"chirps":{},"users":{},"revocations":{}}
+{"chirps":{},"users":{"1":{"id":1,"email":"walt@breakingbad.com","hashed_password":"$2a$10$vmivHPCgommD.Svi6jp2ZOcC6sweVrRB6xDezSp4ir1QCulS7j0.i"},"2":{"id":2,"email":"skyler@breakingbad.com","hashed_password":"$2a$10$e/.OeKY/SpQeh6GWRiuFg.6i/EUhMct2FYla6mdTJJj2MoqnPAI5W"}},"revocations":{}}
