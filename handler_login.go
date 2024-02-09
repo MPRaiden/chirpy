@@ -17,7 +17,6 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		User
 		Token        string `json:"token"`
 		RefreshToken string `json:"refresh_token"`
-		IsChirpyRed bool `json:"is_chirpy_red"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
