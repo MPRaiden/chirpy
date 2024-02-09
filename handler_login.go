@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 	"github.com/MPRaiden/chirpy/internal/auth"
+	"log"
 )
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
@@ -16,6 +17,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		User
 		Token        string `json:"token"`
 		RefreshToken string `json:"refresh_token"`
+		IsChirpyRed bool `json:"is_chirpy_red"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -31,6 +33,8 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get user")
 		return
 	}
+
+	log.Printf("User logged in with email %v. Is User Chirpy Red?: %v\n", user.Email, user.IsChirpyRed)
 
 	err = auth.CheckPasswordHash(params.Password, user.HashedPassword)
 	if err != nil {
@@ -64,6 +68,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		User: User{
 			ID:    user.ID,
 			Email: user.Email,
+			IsChirpyRed: user.IsChirpyRed,
 		},
 		Token:        accessToken,
 		RefreshToken: refreshToken,
