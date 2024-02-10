@@ -54,6 +54,7 @@ func main() {
 		fileserverHits: 0,
 		DB:             db,
 		jwtSecret:      jwtSecret,
+		polkaAPIKey:	polkaAPIKey,
 	}
 
 	router := chi.NewRouter()
