@@ -12,6 +12,12 @@ func (cfg *apiConfig) handlerPolkaWebhook(w http.ResponseWriter, r *http.Request
 		Event string `json:"event"`
 		Data map[string]int `json:"data"`
 	}
+	// Check for API key
+	apiKey := r.Header.Get("Authorization")
+	if apiKey != cfg.polkaAPIKey {
+		respondWithError(w, http.StatusUnauthorized, "You are not authorized to make this request")
+		return
+	}
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
