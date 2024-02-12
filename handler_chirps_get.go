@@ -34,7 +34,34 @@ func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Reque
 		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve chirps")
 		return
 	}
+	// If chirp id is provided only return that chirp
+	author_id := r.URL.Query().Get("author_id")
+	if author_id != "" { 
+		author_id_int, err := strconv.Atoi(author_id)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Could not convert author_id to integer")
+			return
+		}
 
+		author_chirps := []Chirp{}
+		for _, dbChirp := range dbChirps {
+			if dbChirp.AuthorID == author_id_int {
+				author_chirps = append(author_chirps, Chirp{
+					ID: dbChirp.ID,
+					Body: dbChirp.Body,
+					AuthorID: dbChirp.AuthorID,
+				})
+			}
+		}
+
+		sort.Slice(author_chirps, func(i, j int) bool {
+				return author_chirps[i].ID < author_chirps[j].ID
+			})
+
+		respondWithJSON(w, http.StatusOK, author_chirps)
+		return
+	}
+	
 	chirps := []Chirp{}
 	for _, dbChirp := range dbChirps {
 		chirps = append(chirps, Chirp{
