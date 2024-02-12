@@ -34,6 +34,10 @@ func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Reque
 		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve chirps")
 		return
 	}
+
+	// Get sorting query param
+	sortParam := r.URL.Query().Get("sort")
+	
 	// If chirp id is provided only return that chirp
 	author_id := r.URL.Query().Get("author_id")
 	if author_id != "" { 
@@ -54,9 +58,15 @@ func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Reque
 			}
 		}
 
-		sort.Slice(author_chirps, func(i, j int) bool {
-				return author_chirps[i].ID < author_chirps[j].ID
-			})
+		if sortParam == "desc" {
+			sort.Slice(author_chirps, func(i, j int) bool {
+					return author_chirps[i].ID > author_chirps[j].ID
+				})
+			} else {
+				sort.Slice(author_chirps, func(i, j int) bool {
+					return author_chirps[i].ID < author_chirps[j].ID
+				})
+		}
 
 		respondWithJSON(w, http.StatusOK, author_chirps)
 		return
@@ -71,9 +81,15 @@ func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Reque
 		})
 	}
 
-	sort.Slice(chirps, func(i, j int) bool {
-		return chirps[i].ID < chirps[j].ID
-	})
-
+	if sortParam == "desc" {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].ID > chirps[j].ID
+		})
+	} else {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].ID < chirps[j].ID
+		})
+	}
+	
 	respondWithJSON(w, http.StatusOK, chirps)
 }
