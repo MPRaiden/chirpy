@@ -1,4 +1,4 @@
-CHIRPY
+# CHIRPY
 An API service for chirping and managing chirpers. Chirp away!
 
 HOW TO INSTALL
